@@ -273,22 +273,134 @@ void FT::FFT(int N,std::complex<double>* x)
 			}
 		}
 	}
-	//
+	//scale
 	for (int i = 0; i < N; i++)
 	{
-		x[i] /= log2(N);
+		x[i] /= sqrt(N);
 	}
-	//pFreqReal[u][v] = pFreqReal[u][v] / (double)(M);
-	//pFreqImag[u][v] = pFreqImag[u][v] / (double)(M);
 }
 
 
 void FT::InverseFastFourierTransform(int ** InputImage, int ** OutputImage, double ** FreqReal, double ** FreqImag, int h, int w)
 {
+	int M = h;
+	int N = w;
+
+	double** pFreq = new double*[M];
+	for (int newcnt = 0; newcnt < M; newcnt++)
+	{
+		pFreq[newcnt] = new double[N]; // 傅立葉頻率陣列
+	}
+	for (int forzero_i = 0; forzero_i < M; forzero_i++)
+	{
+		for (int forzero_j = 0; forzero_j < N; forzero_j++)
+		{
+			pFreq[forzero_i][forzero_j] = 0.0f;
+		}
+	}
+	//-------------------------------------------
+
+	//each col
+	std::complex<double> **temp = new std::complex<double>*[M];
+	for (int i = 0; i < M; i++)
+	{
+		temp[i] = new std::complex<double>[N];
+	}
+
+	for (int i = 0; i < M; i++)
+	{
+		std::complex<double> *x = new std::complex<double>[N];
+		for (int j = 0; j < N; j++)
+		{
+			x[j].real(FreqReal[i][j]);
+			x[j].imag(FreqImag[i][j]);
+		}
+		InverseFFT(N, x);
+		for (int j = 0; j < N; j++)
+		{
+			temp[i][j] = x[j];
+			//std::cout << " " << temp[i][j];
+		}
+		//std::cout << std::endl;
+		delete[] x;
+	}
+	//each row
+	for (int i = 0; i < N; i++)
+	{
+		std::complex<double> *x = new std::complex<double>[M];
+		for (int j = 0; j < M; j++)
+		{
+			x[j] = temp[j][i];
+		}
+		InverseFFT(M, x);
+		for (int j = 0; j < M; j++)
+		{
+			FreqReal[i][j] = x[j].real();
+			FreqImag[i][j] = x[j].imag();
+			//std::cout << x[j] << " ";
+		}
+		//std::cout << std::endl;
+		delete[] x;
+	}
+
+
+	for (int i = 0; i < M; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			// 將計算好的傅立葉實數與虛數部分作結合 
+			pFreq[i][j] = sqrt(pow(FreqReal[i][j], (double) 2.0) + pow(FreqImag[i][j], (double) 2.0));
+			// 結合後之頻率域丟入影像陣列中顯示 
+			OutputImage[i][j] = pFreq[i][j];
+		}
+	}
+	//-------------------------------------------
+	for (int delcnt = 0; delcnt < M; delcnt++)
+	{
+		delete[] pFreq[delcnt];
+		delete[] temp[delcnt];
+	}
+	delete[] temp;
+	delete[] pFreq;
 }
 
-void FT::InverseFFT(double ** InverseReal, double ** InverseImag, double ** pFreqReal, double ** pFreqImag, int h, int w, int x, int y)
+void FT::InverseFFT(int N, std::complex<double>* x)
 {
+	/* bit-reversal permutation */
+	for (int i = 1, j = 0; i < N; ++i)
+	{
+		for (int k = N >> 1; !((j ^= k)&k); k >>= 1);
+		if (i > j) swap(x[i], x[j]);
+	}
+
+	/* dynamic programming */
+	for (int k = 2; k <= N; k <<= 1)
+	{
+		float theta = 2.0 * 3.14159 / k;
+		std::complex<float> delta_w(cos(theta), sin(theta));
+
+		// 每k個做一次FFT
+		for (int j = 0; j < N; j += k)
+		{
+			// 前k/2個與後k/2的三角函數值恰好對稱，
+			// 因此兩兩對稱的一起做。
+			std::complex<double> w(1, 0);
+			for (int i = j; i < j + k / 2; i++)
+			{
+				std::complex<double> a = x[i];
+				std::complex<double> b = x[i + k / 2] * w;
+				x[i] = a + b;
+				x[i + k / 2] = a - b;
+				w *= delta_w;
+			}
+		}
+	}
+	//scale
+	for (int i = 0; i < N; i++)
+	{
+		x[i] /= sqrt(N);
+	}
+	
 }
 
 
