@@ -478,15 +478,16 @@ private: System::Void inverseFastFourierTransformToolStripMenuItem_Click(System:
 			dataManager->SetPixel(j, i, valuePixeli);
 		}
 	}
+	fourierTransformMethod->InverseFastFourierTransform(dataManager->GetInputImage(), dataManager->GetOutputImage(), dataManager->GetFreqReal(), dataManager->GetFreqImag(), h, w);
 
 	//將算出頻率資訊傳入輸出影像
-	fourierTransformMethod->InverseFastFourierTransform(dataManager->GetInputImage(), dataManager->GetOutputImage(), dataManager->GetFreqReal(), dataManager->GetFreqImag(), h, w);
-	Bitmap^ FFTImage = gcnew Bitmap(w, h);
+	Bitmap^ IFFTImage = gcnew Bitmap(w, h);
 	for (int i = 0; i < h; i++)
 	{
 		for (int j = 0; j < w; j++)
 		{
 			int valuePixeli = dataManager->GetOutputImage()[i][j];
+
 			if (valuePixeli > 255)
 			{
 				valuePixeli = 255;
@@ -495,10 +496,11 @@ private: System::Void inverseFastFourierTransformToolStripMenuItem_Click(System:
 			{
 				valuePixeli = 0;
 			}
-			FFTImage->SetPixel(j, i, Color::FromArgb(valuePixeli, valuePixeli, valuePixeli));
+			IFFTImage->SetPixel(j, i, Color::FromArgb(valuePixeli, valuePixeli, valuePixeli));
 		}
 	}
-	pictureBox_OutputImage->Image = FFTImage;
+
+	pictureBox_OutputImage->Image = IFFTImage;
 }
 };
 }

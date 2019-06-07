@@ -1,5 +1,5 @@
 #include "FT.h"
-#include "complex.h"
+#include <complex>
 
 FT::FT()
 {
@@ -159,88 +159,169 @@ void FT::InverseDFT(double ** InverseReal, double ** InverseImag, double ** pFre
 	InverseImag[x][y] = InverseImag[x][y] / (float)M;
 }
 
-int rev_bits(unsigned int index, int size)
+
+/*-------------------------------------------------------------------------
+   Calculate the closest but lower power of two of a number
+   twopm = 2**m <= n
+   Return TRUE if 2**m == n
+*/
+void Powerof2(int n, int *m, int *twopm)
 {
-	int rev = 0;
-	for (; size > 1; size >>= 1)
-	{
-		rev = (rev << 1) | (index & 1);
-		index >>= 1;
+	if (n <= 1) {
+		*m = 0;
+		*twopm = 1;
 	}
-	return rev;
+
+	*m = 1;
+	*twopm = 2;
+	do {
+		(*m)++;
+		(*twopm) *= 2;
+	} while (2 * (*twopm) <= n);
 }
 
-Complex* fft1(Complex *data, unsigned int size, int log2n, bool inverse)
-{
-	double angle, wtmp, wpr, wpi, wr, wi;
-	int n = 1, n2;
-	double pi2 = 3.14159 * 2.0;
-	double scale = 1.0 / size;
-	Complex tc;
+/*-------------------------------------------------------------------------
+   This computes an in-place complex-to-complex FFT
+   x and y are the real and imaginary arrays of 2^m points.
+   dir =  1 gives forward transform
+   dir = -1 gives reverse transform
 
-	for (int k = 0; k < log2n; ++k)
-	{
-		n2 = n;
+	 Formula: forward
+				  N-1
+				  ---
+			  1   \          - j k 2 pi n / N
+	  X(n) = ---   >   x(k) e                    = forward transform
+			  N   /                                n=0..N-1
+				  ---
+				  k=0
+
+	  Formula: reverse
+				  N-1
+				  ---
+				  \          j k 2 pi n / N
+	  X(n) =       >   x(k) e                    = forward transform
+				  /                                n=0..N-1
+				  ---
+				  k=0
+*/
+void FFT(int dir, long m, std::complex <double> x[])
+{
+	long i, i1, i2, j, k, l, l1, l2, n;
+	std::complex <double> tx, t1, u, c;
+
+	/*Calculate the number of points */
+	n = 1;
+	for (i = 0; i < m; i++)
 		n <<= 1;
-		angle = (inverse) ? pi2 / n : -pi2 / n;
-		wtmp = sin(0.5*angle);
-		wpr = -2.0*wtmp*wtmp;
-		wpi = sin(angle);
-		wr = 1.0;
-		wi = 0.0;
 
-		for (int m = 0; m < n2; ++m) {
-			for (unsigned int i = m; i < size; i += n) {
-				int j = i + n2;
-				tc.real = wr * data[j].real - wi * data[j].imag;
-				tc.imag = wr * data[j].imag + wi * data[j].real;
-				data[j] = data[i] - tc;
-				data[i] += tc;
+	/* Do the bit reversal */
+	i2 = n >> 1;
+	j = 0;
+
+	for (i = 0; i < n - 1; i++)
+	{
+		if (i < j)
+			swap(x[i], x[j]);
+
+		k = i2;
+
+		while (k <= j)
+		{
+			j -= k;
+			k >>= 1;
+		}
+
+		j += k;
+	}
+
+	/* Compute the FFT */
+	c.real(-1.0);
+	c.imag(0.0);
+	l2 = 1;
+	for (l = 0; l < m; l++)
+	{
+		l1 = l2;
+		l2 <<= 1;
+		u.real(1.0);
+		u.imag(0.0);
+
+		for (j = 0; j < l1; j++)
+		{
+			for (i = j; i < n; i += l2)
+			{
+				i1 = i + l1;
+				t1 = u * x[i1];
+				x[i1] = x[i] - t1;
+				x[i] += t1;
 			}
-			wr = (wtmp = wr)*wpr - wi * wpi + wr;
-			wi = wi * wpr + wtmp * wpi + wi;
+
+			u = u * c;
 		}
+
+		c.imag(sqrt((1.0 - c.real()) / 2.0));
+		if (dir == 1)
+			c.imag(-c.imag());
+		c.real(sqrt((1.0 + c.real()) / 2.0));
 	}
-	if (inverse) {
-		for (int i = 0; i < n; i++) {
-			data[i] *= scale;
-		}
+
+	/* Scaling for forward transform */
+	if (dir == 1)
+	{
+		for (i = 0; i < n; i++)
+			x[i] /= n;
 	}
-	return data;
+	return;
 }
 
-Complex** fft2(Complex **data, int r, int c, bool inverse)
+/*-------------------------------------------------------------------------
+   Perform a 2D FFT inplace given a complex 2D array
+   The direction dir, 1 for forward, -1 for reverse
+   The size of the array (nx,ny)
+   Return false if there are memory problems or
+	  the dimensions are not powers of 2
+*/
+void FFT2D(std::complex<double> **c, int nx, int ny, int dir)
 {
-	Complex *row = new Complex[r];
-	Complex *column = new Complex[c];
-	int log2w = log2(r);
-	int log2h = log2(c);
+	int i, j;
+	int m, twopm;
 
-	// Perform FFT on each row
-	for (int y = 0; y < c; ++y) {
-		for (int x = 0; x < r; ++x) {
-			int rb = rev_bits(x, r);
-			row[rb] = data[x][y];
+	Powerof2(nx, &m, &twopm);
+
+	/* Transform the rows */
+	std::complex <double> *x = new std::complex <double>[nx];
+
+	for (j = 0; j < ny; j++) {
+		for (i = 0; i < nx; i++) {
+			x[i].real(c[i][j].real());
+			x[i].imag(c[i][j].imag());
 		}
-		row = fft1(row, r, log2w, inverse);
-		for (int x = 0; x < r; ++x) {
-			data[x][y] = row[x];
+		FFT(dir, m, x);
+		for (i = 0; i < nx; i++) {
+			c[i][j].real(x[i].real());
+			c[i][j].imag(x[i].imag());
 		}
 	}
+	delete[] x;
 
-	// Perform FFT on each column
-	for (int x = 0; x < r; ++x) {
-		for (int y = 0; y < c; ++y) {
-			int rb = rev_bits(y, c);
-			column[rb] = data[x][y];
+	/* Transform the columns */
+	x = new std::complex <double>[nx];
+
+	Powerof2(ny, &m, &twopm);
+	for (i = 0; i < nx; i++) {
+		for (j = 0; j < ny; j++) {
+			x[j].real(c[i][j].real());
+			x[j].imag(c[i][j].imag());
 		}
-		column = fft1(column, c, log2h, inverse);
-		for (int y = 0; y < c; ++y) {
-			data[x][y] = column[y];
+		FFT(dir, m, x);
+		for (j = 0; j < ny; j++) {
+			c[i][j].real(x[j].real());
+			c[i][j].imag(x[j].imag());
 		}
 	}
-	return data;
+	delete[] x;
 }
+
+
 
 void FT::FastFourierTransform(int ** InputImage, int ** OutputImage, double ** FreqReal, double ** FreqImag, int h, int w)
 {
@@ -260,34 +341,26 @@ void FT::FastFourierTransform(int ** InputImage, int ** OutputImage, double ** F
 		}
 	}
 	//-------------------------------------------
-	/*
-	for (int i = 0; i < M; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			FFT(FreqReal, FreqImag, InputImage, M, N, j, i);
-		}
-	}
-	*/
-	Complex ** input_seq;
-	input_seq = new Complex*[h];
+	
+	std::complex<double> ** input_seq;
+	input_seq = new std::complex<double>*[h];
 	for (unsigned int j = 0; j < h; j++) {
-		input_seq[j] = new Complex[h];
+		input_seq[j] = new std::complex<double>[h];
 	}
 	for (unsigned int i = 0; i < h; i++) {
 		for (unsigned int j = 0; j < w; ++j) {
-			input_seq[i][j] = Complex(InputImage[i][j], 0);
+			input_seq[i][j] = std::complex<double>(InputImage[i][j], 0);
 		}
 	}
 
-	fft2(input_seq, h, w, false);
+	FFT2D(input_seq, w, h, -1);
 
 	for (int i = 0; i < M; i++)
 	{
 		for (int j = 0; j < N; j++)
 		{
 			// 將計算好的傅立葉實數與虛數部分作結合 
-			pFreq[i][j] = sqrt(pow(input_seq[i][j].real, (double) 2.0) + pow(input_seq[i][j].imag, (double) 2.0));
+			pFreq[i][j] = sqrt(pow(input_seq[i][j].real(), (double) 2.0) + pow(input_seq[i][j].imag(), (double) 2.0));
 			// 結合後之頻率域丟入影像陣列中顯示 
 			OutputImage[i][j] = pFreq[i][j];
 		}
@@ -441,35 +514,26 @@ void FT::InverseFastFourierTransform(int ** InputImage, int ** OutputImage, doub
 		}
 	}
 	//-------------------------------------------
-	/*
-	for (int i = 0; i < M; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			FFT(FreqReal, FreqImag, InputImage, M, N, j, i);
-		}
-	}
-	*/
-	Complex ** input_seq;
-	input_seq = new Complex*[h];
+
+	std::complex<double> ** input_seq;
+	input_seq = new std::complex<double>*[h];
 	for (unsigned int j = 0; j < h; j++) {
-		input_seq[j] = new Complex[h];
+		input_seq[j] = new std::complex<double>[h];
 	}
 	for (unsigned int i = 0; i < h; i++) {
 		for (unsigned int j = 0; j < w; ++j) {
-			input_seq[i][j] = Complex(InputImage[i][j], 0);
+			input_seq[i][j] = std::complex<double>(InputImage[i][j], 0);
 		}
 	}
 
-	fft2(input_seq, h, w, true);
-
+	FFT2D(input_seq, w, h, 1);
 
 	for (int i = 0; i < M; i++)
 	{
 		for (int j = 0; j < N; j++)
 		{
 			// 將計算好的傅立葉實數與虛數部分作結合 
-			pFreq[i][j] = sqrt(pow(input_seq[i][j].real, (double) 2.0) + pow(input_seq[i][j].imag, (double) 2.0));
+			pFreq[i][j] = sqrt(pow(input_seq[i][j].real(), (double) 2.0) + pow(input_seq[i][j].imag(), (double) 2.0));
 			// 結合後之頻率域丟入影像陣列中顯示 
 			OutputImage[i][j] = pFreq[i][j];
 		}
