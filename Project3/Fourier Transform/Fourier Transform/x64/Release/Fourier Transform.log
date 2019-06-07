@@ -1,0 +1,10 @@
+﻿  FT.cpp
+d:\visual studio\project3_em\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(41): warning C4244: '=': 將 'double' 轉換為 'int'，由於類型不同，可能導致資料遺失
+d:\visual studio\project3_em\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(117): warning C4244: '=': 將 'double' 轉換為 'int'，由於類型不同，可能導致資料遺失
+d:\visual studio\project3_em\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(274): warning C4018: '<': signed/unsigned 不相符
+d:\visual studio\project3_em\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(277): warning C4018: '<': signed/unsigned 不相符
+d:\visual studio\project3_em\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(278): warning C4018: '<': signed/unsigned 不相符
+d:\visual studio\project3_em\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(293): warning C4244: '=': 將 'double' 轉換為 'int'，由於類型不同，可能導致資料遺失
+  complex.cpp
+  正在產生程式碼...
+  Fourier Transform.vcxproj -> D:\Visual Studio\Project3_EM\Project3\Fourier Transform\Fourier Transform\Fourier Transform\x64\Release\FourierTransform.exe

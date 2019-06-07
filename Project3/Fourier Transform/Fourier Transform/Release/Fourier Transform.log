@@ -1,0 +1,7 @@
+﻿  FT.cpp
+c:\users\a3265\desktop\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(41): warning C4244: '=': 將 'double' 轉換為 'int'，由於類型不同，可能導致資料遺失
+c:\users\a3265\desktop\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(117): warning C4244: '=': 將 'double' 轉換為 'int'，由於類型不同，可能導致資料遺失
+c:\users\a3265\desktop\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(195): warning C4244: '=': 將 'double' 轉換為 'int'，由於類型不同，可能導致資料遺失
+c:\users\a3265\desktop\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(232): warning C4244: '正在初始化': 將 'double' 轉換為 'float'，由於類型不同，可能導致資料遺失
+c:\users\a3265\desktop\project3\fourier transform\fourier transform\fourier transform\fourier transform\ft.cpp(279): warning C4244: '正在初始化': 將 'double' 轉換為 'float'，由於類型不同，可能導致資料遺失
+  Fourier Transform.vcxproj -> C:\Users\a3265\Desktop\Project3\Fourier Transform\Fourier Transform\Fourier Transform\Release\FourierTransform.exe
