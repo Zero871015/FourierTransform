@@ -179,6 +179,12 @@ void FT::FastFourierTransform(int ** InputImage, int ** OutputImage, double ** F
 	//-------------------------------------------
 	
 	//each col
+	std::complex<double> **temp = new std::complex<double>*[M];
+	for (int i = 0; i < M; i++)
+	{
+		temp[i] = new std::complex<double>[N];
+	}
+
 	for (int i = 0; i < M; i++)
 	{
 		std::complex<double> *x = new std::complex<double>[N];
@@ -190,9 +196,10 @@ void FT::FastFourierTransform(int ** InputImage, int ** OutputImage, double ** F
 		FFT(N,x);
 		for (int j = 0; j < N; j++)
 		{
-			FreqReal[i][j] += x[j].real();
-			FreqImag[i][j] += x[j].imag();
+			temp[i][j] = x[j];
+			//std::cout << " " << temp[i][j];
 		}
+		//std::cout << std::endl;
 		delete[] x;
 	}
 	//each row
@@ -201,15 +208,16 @@ void FT::FastFourierTransform(int ** InputImage, int ** OutputImage, double ** F
 		std::complex<double> *x = new std::complex<double>[M];
 		for (int j = 0; j < M; j++)
 		{
-			x[j].real(InputImage[j][i]);
-			x[j].imag(0);
+			x[j] = temp[j][i];
 		}
 		FFT(M,x);
 		for (int j = 0; j < M; j++)
 		{
-			FreqReal[j][i] += x[j].real();
-			FreqImag[j][i] += x[j].imag();
+			FreqReal[i][j] = x[j].real();
+			FreqImag[i][j] = x[j].imag();
+			//std::cout << x[j] << " ";
 		}
+		//std::cout << std::endl;
 		delete[] x;
 	}
 	
@@ -228,7 +236,9 @@ void FT::FastFourierTransform(int ** InputImage, int ** OutputImage, double ** F
 	for (int delcnt = 0; delcnt < M; delcnt++)
 	{
 		delete[] pFreq[delcnt];
+		delete[] temp[delcnt];
 	}
+	delete[] temp;
 	delete[] pFreq;
 }
 
@@ -263,9 +273,10 @@ void FT::FFT(int N,std::complex<double>* x)
 			}
 		}
 	}
+	//
 	for (int i = 0; i < N; i++)
 	{
-		x[i] /= N;
+		x[i] /= log2(N);
 	}
 	//pFreqReal[u][v] = pFreqReal[u][v] / (double)(M);
 	//pFreqImag[u][v] = pFreqImag[u][v] / (double)(M);
